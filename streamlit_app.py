@@ -1,4 +1,4 @@
-# app.py
+# final_app.py
 
 import streamlit as st
 import pandas as pd
@@ -6,6 +6,7 @@ import plotly.express as px
 import requests
 import datetime
 import io
+import random
 
 # ================================
 # 공통 설정
@@ -18,7 +19,7 @@ st.set_page_config(layout="wide")
 st.title("기후변화와 일자리 : 녹색 전환의 기회와 위험 🌍💼")
 
 # ================================
-# 유틸 함수
+# 공통 함수
 # ================================
 def remove_future_data(df, date_col):
     today = datetime.datetime.now().date()
@@ -65,18 +66,30 @@ def run_public_data_dashboard():
         max_value=int(df_climate['year'].max()),
         value=(1990, 2023)
     )
-    df_filtered = df_climate[(df_climate['year'] >= year_range[0]) & (df_climate['year'] <= year_range[1])]
+    df_climate_f = df_climate[(df_climate['year'] >= year_range[0]) & (df_climate['year'] <= year_range[1])]
 
-    df_melt = df_filtered.melt(id_vars=['year'], var_name='지표', value_name='값')
-    fig = px.line(
-        df_melt,
-        x='year', y='값', color='지표',
+    st.subheader("1-1. 기후변화 4대지표 추이")
+    df_climate_melt = df_climate_f.melt(id_vars=['year'], var_name='지표', value_name='값')
+    fig_climate = px.line(
+        df_climate_melt,
+        x='year',
+        y='값',
+        color='지표',
         title='기후변화 4대지표 변화 추이',
         markers=True,
-        labels={'year': '연도', '값': '지표 값'}
+        labels={'year':'연도', '값':'지표 값'}
     )
-    fig.update_layout(plotly_font_config)
-    st.plotly_chart(fig, use_container_width=True)
+    fig_climate.update_layout(plotly_font_config)
+    st.plotly_chart(fig_climate, use_container_width=True)
+
+    st.download_button(
+        label="✅ 기후변화 지표 데이터 다운로드 (CSV)",
+        data=df_climate.to_csv(index=False).encode('utf-8'),
+        file_name='기후변화_4대지표.csv',
+        mime='text/csv'
+    )
+
+    st.markdown("---")
 
 # ================================
 # 페이지 2. 교육 및 취업 지표
@@ -90,24 +103,34 @@ def run_education_employment_dashboard():
         '졸업 후 취업률': [65.0, 66.2, 65.8, 67.1, 68.0, 70.3]
     })
 
-    year_range = st.slider(
+    year_range2 = st.slider(
         "진학/취업 지표 연도 범위 선택",
         min_value=int(df_college['year'].min()),
         max_value=int(df_college['year'].max()),
         value=(2018, 2023)
     )
-    df_filtered = df_college[(df_college['year'] >= year_range[0]) & (df_college['year'] <= year_range[1])]
+    df_college_f = df_college[(df_college['year'] >= year_range2[0]) & (df_college['year'] <= year_range2[1])]
 
-    fig = px.line(
-        df_filtered,
+    st.subheader("2-1. 대학 진학률 및 졸업 후 취업률 추이")
+    fig_ed = px.line(
+        df_college_f,
         x='year',
         y=['대학진학률', '졸업 후 취업률'],
         markers=True,
         title='대학 진학률 vs 졸업 후 취업률',
-        labels={'value': '비율 (%)', 'year': '연도', 'variable': '지표'}
+        labels={'value':'비율 (%)', 'year':'연도', 'variable':'지표'}
     )
-    fig.update_layout(plotly_font_config)
-    st.plotly_chart(fig, use_container_width=True)
+    fig_ed.update_layout(plotly_font_config)
+    st.plotly_chart(fig_ed, use_container_width=True)
+
+    st.download_button(
+        label="✅ 대학 진학/취업률 데이터 다운로드 (CSV)",
+        data=df_college.to_csv(index=False).encode('utf-8'),
+        file_name='대학진학취업률.csv',
+        mime='text/csv'
+    )
+
+    st.markdown("---")
 
 # ================================
 # 페이지 3. 직무 기회 vs 위험
@@ -126,24 +149,118 @@ def run_risk_opportunity_dashboard():
 
     col1, col2 = st.columns(2)
     with col1:
-        fig_op = px.bar(df_op, x='직무', y='성장 가능성 (점수)', color='성장 가능성 (점수)',
-                        color_continuous_scale=px.colors.sequential.Greens,
-                        title='새롭게 떠오르는 녹색 직무')
+        st.subheader("성장 가능성이 높은 녹색 직무")
+        fig_op = px.bar(
+            df_op,
+            x='직무',
+            y='성장 가능성 (점수)',
+            color='성장 가능성 (점수)',
+            color_continuous_scale=px.colors.sequential.Greens,
+            title='새롭게 떠오르는 녹색 직무'
+        )
         fig_op.update_layout(plotly_font_config)
         st.plotly_chart(fig_op, use_container_width=True)
 
     with col2:
-        fig_r = px.bar(df_r, x='직무', y='위험도 (점수)', color='위험도 (점수)',
-                       color_continuous_scale=px.colors.sequential.Reds,
-                       title='녹색 전환으로 위협받는 직무')
-        fig_r.update_layout(plotly_font_config)
-        st.plotly_chart(fig_r, use_container_width=True)
+        st.subheader("위험성이 높은 기존 직무")
+        fig_risk = px.bar(
+            df_r,
+            x='직무',
+            y='위험도 (점수)',
+            color='위험도 (점수)',
+            color_continuous_scale=px.colors.sequential.Reds,
+            title='녹색 전환으로 위협받는 직무'
+        )
+        fig_risk.update_layout(plotly_font_config)
+        st.plotly_chart(fig_risk, use_container_width=True)
+
+    st.download_button(
+        label="✅ 기회 직무 데이터 다운로드 (CSV)",
+        data=df_op.to_csv(index=False).encode('utf-8'),
+        file_name='녹색전환_기회.csv',
+        mime='text/csv'
+    )
+    st.download_button(
+        label="✅ 위험 직무 데이터 다운로드 (CSV)",
+        data=df_r.to_csv(index=False).encode('utf-8'),
+        file_name='녹색전환_위험.csv',
+        mime='text/csv'
+    )
 
 # ================================
-# 페이지 4. 설문
+# 페이지 4. 퀴즈 게임
+# ================================
+def run_quiz_game():
+    st.subheader("4. 기후변화와 일자리 퀴즈 게임 🎮")
+
+    questions = [
+        {
+            "q": "지구 평균 기온 상승의 주요 원인은 무엇일까요?",
+            "options": ["온실가스 증가", "태양 흑점 감소", "달의 중력", "자전 속도 변화"],
+            "answer": "온실가스 증가"
+        },
+        {
+            "q": "녹색 전환으로 인해 가장 위험에 처한 직무는?",
+            "options": ["내연기관 엔지니어", "태양광 패널 설치 기사", "ESG 컨설턴트", "기후 데이터 분석가"],
+            "answer": "내연기관 엔지니어"
+        },
+        {
+            "q": "다음 중 재생에너지에 해당하지 않는 것은?",
+            "options": ["태양광", "풍력", "석탄", "수력"],
+            "answer": "석탄"
+        },
+        {
+            "q": "해수면 상승이 가장 직접적으로 영향을 미치는 것은?",
+            "options": ["해안 도시 침수", "산림 파괴", "오존층 파괴", "대륙 이동"],
+            "answer": "해안 도시 침수"
+        },
+        {
+            "q": "탄소중립(Net-Zero)의 목표 연도로 국제사회가 합의한 시기는?",
+            "options": ["2030년", "2050년", "2070년", "2100년"],
+            "answer": "2050년"
+        }
+    ]
+
+    # 1) form 내부에서는 입력만 받고 제출 버튼도 여기 둔다
+    with st.form("quiz_form"):
+        for i, q in enumerate(questions):
+            st.markdown(f"**Q{i+1}. {q['q']}**")
+            # 각 문항별로 고유한 key를 사용해서 입력을 session_state에 저장
+            st.radio("선택하세요:", q["options"], key=f"q{i}")
+        submitted = st.form_submit_button("제출하기 ✅")
+
+    # 2) 제출 결과 처리(채점 / 결과표시 / 다운로드)는 form 바깥에서 수행
+    if submitted:
+        score = 0
+        result_rows = []
+        for i, q in enumerate(questions):
+            user_ans = st.session_state.get(f"q{i}")  # form에서 저장된 값 읽기
+            if user_ans == q["answer"]:
+                score += 1
+            result_rows.append({"문항": q["q"], "내 답변": user_ans, "정답": q["answer"]})
+
+        st.success(f"퀴즈 완료! 🎉 총 {len(questions)}문제 중 {score}점 획득했습니다.")
+        # st.progress는 0~100 범위의 정수 사용이 안전
+        st.progress(int(score / len(questions) * 100))
+
+        result = pd.DataFrame(result_rows)
+        st.subheader("📊 결과 확인")
+        st.dataframe(result)
+
+        # 다운로드 버튼은 여기에 (form 바깥) 있어야 에러 없음
+        st.download_button(
+            label="✅ 퀴즈 결과 다운로드 (CSV)",
+            data=result.to_csv(index=False).encode("utf-8"),
+            file_name="quiz_result.csv",
+            mime="text/csv"
+        )
+
+
+# ================================
+# 페이지 5. 설문
 # ================================
 def run_survey_page():
-    st.subheader("4.설문 ✍️")
+    st.subheader("5.설문 ✍️")
 
     st.markdown("아래 **15문항** 설문에 답해주세요!")
 
@@ -170,7 +287,7 @@ def run_survey_page():
 # 메인 실행
 # ================================
 def main():
-    tabs = st.tabs(["🌍 기후변화 지표", "📚 교육 및 취업 지표", "⚖️ 직무 기회 vs 위험", "📝 설문"])
+    tabs = st.tabs(["🌍 기후변화 지표", "📚 교육 및 취업 지표", "⚖️ 직무 기회 vs 위험", "🎮 퀴즈 게임", "📝 설문"])
 
     with tabs[0]:
         run_public_data_dashboard()
@@ -179,6 +296,8 @@ def main():
     with tabs[2]:
         run_risk_opportunity_dashboard()
     with tabs[3]:
+        run_quiz_game()
+    with tabs[4]:
         run_survey_page()
 
 if __name__ == "__main__":
