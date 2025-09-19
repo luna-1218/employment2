@@ -143,7 +143,7 @@ def run_risk_opportunity_dashboard():
 # 페이지 4. 설문
 # ================================
 def run_survey_page():
-    st.subheader("4. 관련 설문 ✍️")
+    st.subheader("4.설문 ✍️")
 
     st.markdown("아래 **15문항** 설문에 답해주세요!")
 
